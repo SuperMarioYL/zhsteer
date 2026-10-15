@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zhsteer"
+version = "0.1.0"
+description = "面向中文内容管线开发者的开源权重去腔工具，直接在 Qwen 内部移除中文 AI 腔"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "SuperMarioYL", email = "leo.stack@outlook.com" }]
+keywords = ["llm", "qwen", "activation-steering", "chinese-nlp", "interpretability"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.4",
+    "transformers>=4.51",
+    "typer>=0.12",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/SuperMarioYL/zhsteer"
+Repository = "https://github.com/SuperMarioYL/zhsteer"
+Issues = "https://github.com/SuperMarioYL/zhsteer/issues"
+
+[project.scripts]
+zhsteer = "zhsteer.cli:app"
+
+[dependency-groups]
+test = ["pytest>=8.0"]
+
+[tool.uv]
+default-groups = ["test"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zhsteer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
