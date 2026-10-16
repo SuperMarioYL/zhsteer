@@ -1,0 +1,38 @@
+{
+  "mode": "auto",
+  "id": "56e6da-6aafe7-acf6d5-5f14a37288f4",
+  "identity": "https://github.com/supermarioyl/zhsteer",
+  "primary": "#56e6da",
+  "secondary": "#6aafe7",
+  "highlight": "#acf6d5",
+  "dark": {
+    "bg": "#050c11",
+    "panel": "#0c171e",
+    "code": "#0a171c",
+    "ink": "#eefdf7",
+    "muted": "#95b9c2",
+    "line": "#173c3d",
+    "primary": "#56e6da",
+    "secondary": "#6aafe7",
+    "highlight": "#acf6d5",
+    "accent": "#56e6da",
+    "buttonStart": "#31827c",
+    "buttonEnd": "#4b7ba3",
+    "buttonText": "#ffffff"
+  },
+  "light": {
+    "bg": "#f9fefe",
+    "panel": "#f7fefd",
+    "code": "#f3fdfc",
+    "ink": "#132a2e",
+    "muted": "#557a84",
+    "line": "#cbf7f4",
+    "primary": "#30807a",
+    "secondary": "#49789f",
+    "highlight": "#577c6b",
+    "accent": "#30807a",
+    "buttonStart": "#31827c",
+    "buttonEnd": "#4b7ba3",
+    "buttonText": "#ffffff"
+  }
+}

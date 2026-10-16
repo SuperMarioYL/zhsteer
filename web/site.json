@@ -1,0 +1,360 @@
+{
+  "schema": 3,
+  "name": "zhsteer",
+  "github": "https://github.com/SuperMarioYL/zhsteer",
+  "host": "zhsteer.lei6393.com",
+  "lang": {
+    "primary": "zh",
+    "toggle": true
+  },
+  "palette": "auto",
+  "hero": {
+    "eyebrow": {
+      "zh": "开源权重 · 推理时消融 · MIT",
+      "en": "Open weights · inference-time ablation · MIT"
+    },
+    "headline": {
+      "zh": "把中文 AI 腔\n从 Qwen3 权重里投影掉",
+      "en": "Project the Chinese AI register\nout of Qwen3's weights"
+    },
+    "sub": {
+      "zh": "一条命令提取中文 AI 腔方向，生成时投影消融：排比三连和“值得注意的是”在源头不再进入输出。面向中文内容管线与 Agent 流程的免费开源推理原语。",
+      "en": "Extract the Chinese AI-register direction with one command and project it out during generation: parallel triples and stock markers never reach the output. A free, open-source inference primitive for Chinese content pipelines and Agent flows."
+    },
+    "href": "#quickstart",
+    "cta": {
+      "zh": "查看快速开始",
+      "en": "See the quickstart"
+    }
+  },
+  "advantages": [
+    {
+      "title": {
+        "zh": "去腔发生在生成源头",
+        "en": "Removal happens at the generation source"
+      },
+      "body": {
+        "zh": "方向提取每个模型版本只做一次；生成时把腔调方向从残差流投影掉（x ← x − (x·d̂)d̂）。腔调不会在下一轮 generate() 里长回来，与之正交的内容子空间不受影响。",
+        "en": "The direction is extracted once per model version; at generation time the register direction is projected out of the residual stream (x ← x − (x·d̂)d̂). The register does not grow back on the next generate(), and the orthogonal content subspace is untouched."
+      }
+    },
+    {
+      "title": {
+        "zh": "像 temperature 一样接入",
+        "en": "Plugs in like temperature"
+      },
+      "body": {
+        "zh": "交付为 steer() 上下文管理器或 --ablate 强度旋钮，放在你现有的 transformers generate() 调用旁边，一行不改；钩子随上下文进入挂载、退出移除，块内抛异常也不会泄漏到外层生成。",
+        "en": "Ships as a steer() context manager or an --ablate strength knob next to your existing transformers generate() call — unchanged. The hook attaches on context entry and is removed on exit; even if the block raises, it cannot leak into surrounding generations."
+      }
+    },
+    {
+      "title": {
+        "zh": "64 组手写中文最小对",
+        "en": "64 hand-written Chinese minimal pairs"
+      },
+      "body": {
+        "zh": "内置最小对集覆盖常见内容场景（12 组 held-out 不参与提取）；对 Qwen3-4B 的残差流做差值均值（diff-in-means）得到“中文 AI 腔方向”，层按训练集可分性自动选择。",
+        "en": "The bundled pair set covers common content scenarios (12 held out from extraction); a difference-in-means over Qwen3-4B's residual stream yields the register direction, with the layer auto-selected by training separability."
+      }
+    },
+    {
+      "title": {
+        "zh": "确定性打分 + 带校验和的方向包",
+        "en": "Deterministic scoring + checksummed packs"
+      },
+      "body": {
+        "zh": "打分器是纯词表 + 正则：九类中文 AI 腔信号，每 1000 非空白字符加权命中，同一文本永远同一分数。DirectionPack 按模型打标、sha256 校验，加载时重新计算，坏包当场报错而不是带着坏方向继续生成。",
+        "en": "The scorer is pure lexicon + regex: nine Chinese AI-register signal classes, weighted hits per 1,000 non-whitespace characters — the same text always scores the same. DirectionPacks are model-tagged with sha256 checksums recomputed on load; a corrupted pack fails loudly instead of steering generation with a broken direction."
+      }
+    }
+  ],
+  "demo": {
+    "title": {
+      "zh": "已验证的运行记录",
+      "en": "Verified run records"
+    },
+    "note": {
+      "zh": "以下命令与输出逐字取自 docs/demo-results.json（2026-10-16，macOS / 无 CUDA 环境）：体检、打分与测试为实测记录；提取、生成与消融报告的真实数字需要 16GB CUDA GPU，由你自己的 zhsteer demo 运行写回。",
+      "en": "Commands and outputs are copied verbatim from docs/demo-results.json (2026-10-16, macOS without CUDA): the environment check, scorer and tests are measured runs; real extract / generate / report numbers require a 16GB CUDA GPU and come from your own zhsteer demo run."
+    },
+    "source": "https://github.com/SuperMarioYL/zhsteer/blob/main/docs/demo-results.json",
+    "steps": [
+      {
+        "label": {
+          "zh": "环境体检",
+          "en": "Environment check"
+        },
+        "body": {
+          "zh": "v0.1 只支持 CUDA ≥ 16GB 显存。在无 CUDA 的机器上，doctor 逐项列出缺口并以非零码退出——不让你白等一次 ~8GB 模型下载。",
+          "en": "v0.1 requires CUDA with at least 16GB VRAM. On a machine without CUDA, doctor lists every gap item by item and exits non-zero — no ~8GB model download wasted."
+        },
+        "image": "/assets/demo-doctor-light.svg",
+        "imageDark": "/assets/demo-doctor-dark.svg",
+        "command": "zhsteer doctor",
+        "output": "[PASS] Python >= 3.12：3.14.4 / [PASS] torch：2.13.0 / [PASS] transformers：5.14.1 / [FAIL] CUDA：无可用 CUDA 设备 / [FAIL] 显存 >= 16GB：未检测到 GPU / [PASS] 磁盘可用 >= 12GB：475.5GB；退出码 1"
+      },
+      {
+        "label": {
+          "zh": "确定性打分",
+          "en": "Deterministic scoring"
+        },
+        "body": {
+          "zh": "trope 打分器不需要模型：一句排比加感叹号的 19 字样本得到 184.21 的密度分。打分器是纯词表 + 正则实现，同一文本永远得到同一分数。",
+          "en": "The trope scorer needs no model: a 19-character sample with a parallel triple and an exclamation scores 184.21 on the density scale. The scorer is pure lexicon + regex — the same text always scores the same."
+        },
+        "image": "/assets/demo-score-light.svg",
+        "imageDark": "/assets/demo-score-dark.svg",
+        "command": "zhsteer score --json --text '我们要做更高效、更智能、更普惠的工具！'",
+        "output": "{\"total\": 184.21052631578948, \"chars\": 19, \"hits\": {\"parallel_triple\": 1, \"discourse_marker\": 0, \"summary_boilerplate\": 0, \"empty_connective\": 0, \"progressive_pair\": 0, \"era_opener\": 0, \"enumeration\": 0, \"hype_lexicon\": 0, \"exclamation\": 1}}"
+      },
+      {
+        "label": {
+          "zh": "单元测试",
+          "en": "Test suite"
+        },
+        "body": {
+          "zh": "合成 fixture 不下载任何模型：提取机制（注入指定层的方向分量）、DirectionPack 完整性、trope 打分器与内置最小对契约（64 组 / 12 held-out）全部通过。",
+          "en": "Synthetic fixtures download no model: extraction mechanics (a direction component injected at a fixed layer), DirectionPack integrity, the trope scorer, and the bundled pair contract (64 pairs / 12 held out) all pass."
+        },
+        "image": "/assets/demo-tests-light.svg",
+        "imageDark": "/assets/demo-tests-dark.svg",
+        "command": "python3 -m pytest -q",
+        "output": "41 passed in 1.35s"
+      },
+      {
+        "label": {
+          "zh": "CLI 装配",
+          "en": "CLI surface"
+        },
+        "body": {
+          "zh": "五个子命令一次装配：doctor / extract / generate / demo / score。重型依赖只在需要的命令里导入，score 与 --help 在没有 GPU 的机器上依然秒级响应。",
+          "en": "Five subcommands assemble in one CLI: doctor / extract / generate / demo / score. Heavy imports happen only inside the commands that need them, so score and --help stay fast on machines without a GPU."
+        },
+        "image": "/assets/demo-cli-light.svg",
+        "imageDark": "/assets/demo-cli-dark.svg",
+        "command": "python3 -m zhsteer.cli --help",
+        "output": "doctor / extract / generate / demo / score"
+      }
+    ]
+  },
+  "quickstart": {
+    "title": {
+      "zh": "快速开始",
+      "en": "Quickstart"
+    },
+    "body": {
+      "zh": "要求：NVIDIA GPU（≥ 16GB 显存）、Python 3.12+、uv。macOS / CPU 推理不在 v0.1 支持范围。首次运行会下载 ~8GB 模型（只需一次）；在 16GB 消费级 GPU 上，一条命令预计约 30 分钟。",
+      "en": "Requirements: an NVIDIA GPU (at least 16GB VRAM), Python 3.12+, and uv. macOS and CPU inference are out of scope for v0.1. The first run downloads the ~8GB model (once); the one-command path takes about 30 minutes on a 16GB consumer GPU."
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "克隆并体检",
+          "en": "Clone and check"
+        },
+        "code": "git clone https://github.com/SuperMarioYL/zhsteer\ncd zhsteer\nuv sync\nuv run zhsteer doctor"
+      },
+      {
+        "title": {
+          "zh": "一条命令跑通全链路",
+          "en": "One command, the whole chain"
+        },
+        "code": "uv run zhsteer demo --model qwen3-4b"
+      },
+      {
+        "title": {
+          "zh": "或分步执行",
+          "en": "Or step by step"
+        },
+        "code": "uv run zhsteer extract --model qwen3-4b\nuv run zhsteer generate --pack packs/qwen3-4b.pack \\\n    --ablate 0.9 --prompt \"写一段产品介绍\""
+      },
+      {
+        "title": {
+          "zh": "接进你自己的管线",
+          "en": "Wire it into your pipeline"
+        },
+        "code": "from zhsteer import load, steer\n\npack = load(\"packs/qwen3-4b.pack\")\nwith steer(model, pack, strength=0.9):\n    output = model.generate(**inputs)"
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "zh": "v0.1 只在 Qwen/Qwen3-4B-Instruct-2507 上验证过；DirectionPack 按模型打标并校验 checksum，换模型需要重新提取。",
+      "en": "v0.1 is validated on Qwen/Qwen3-4B-Instruct-2507 only; DirectionPacks are model-tagged and checksum-verified, so switching models requires re-extraction."
+    },
+    {
+      "zh": "模型路径需要 CUDA ≥ 16GB 显存的 NVIDIA GPU；macOS / CPU 推理不在 v0.1 范围。",
+      "en": "The model path needs an NVIDIA GPU with at least 16GB VRAM; macOS and CPU inference are out of scope for v0.1."
+    },
+    {
+      "zh": "本页 demo 面板是无 CUDA 机器上的实测记录；held-out 可分性、trope 降幅等真实数字必须来自你自己的 GPU 运行，仓库内置的报告是占位模板。",
+      "en": "The demo panel on this page records runs from a machine without CUDA; real numbers such as held-out separability and trope reduction must come from your own GPU run, and the report bundled in the repo is a placeholder template."
+    },
+    {
+      "zh": "仅支持 HF transformers 推理循环；vLLM / SGLang / OpenAI 兼容 serving 集成未实现。",
+      "en": "HF transformers inference loops only; vLLM / SGLang / OpenAI-compatible serving integration is not implemented."
+    },
+    {
+      "zh": "单方向、单层消融；打分器度量腔调密度，不是 LLM-as-judge 的文采评审。",
+      "en": "Single direction, single layer; the scorer measures register density, not writing quality as an LLM judge would."
+    },
+    {
+      "zh": "内置 64 组最小对手工编写，覆盖常见内容场景但非穷举；自定义领域请用 --pairs 传入你自己的集合。",
+      "en": "The bundled 64 minimal pairs are hand-written and cover common scenarios, not exhaustive ones; pass --pairs with your own set for custom domains."
+    }
+  ],
+  "scene": {
+    "kind": "neon-graph",
+    "fallback": "/assets/scene-dark.svg",
+    "fallbackLight": "/assets/scene-light.svg",
+    "caption": {
+      "zh": "示意场景：中文 AI 腔方向在残差流中被投影消融",
+      "en": "Illustrative scene: the register direction projected out of the residual stream"
+    }
+  },
+  "story": {
+    "intro": {
+      "title": {
+        "zh": "腔调住在激活里\n而不是 prompt 里",
+        "en": "The register lives in activations,\nnot in your prompt"
+      },
+      "body": {
+        "zh": "跑中文内容管线的每一天都在和排比三连、“值得注意的是”、爆款体打交道。prompt 层规则与逐篇重写都是在编辑层对付症状——下一轮 generate()，腔调重新长出来；每换一次模型版本，规则库重写一遍。zhsteer 把同一件事挪到权重层：用模型自己的激活找出“中文 AI 腔方向”，然后在推理时投影掉。",
+        "en": "Running a Chinese content pipeline means fighting parallel triples, stock markers and hype cadence daily. Prompt-layer rules and per-article rewrites treat symptoms at the edit layer — the register grows back on the next generate(), and every model version bump invalidates the rule library. zhsteer moves the job into the weights: find the register direction in the model's own activations, then project it out at inference."
+      }
+    },
+    "sections": [
+      {
+        "title": {
+          "zh": "一条命令的证伪实验",
+          "en": "A one-command falsifier"
+        },
+        "body": {
+          "zh": "demo 把全链路压成一条命令：下载模型 → 提取方向 → 重新生成 10 条 held-out 提示词 → 前后打分 → 写出消融报告。分数为实测值，不做门槛过滤；证伪线（held-out 可分性 ≥ 90%、平均降幅 ≥ 20%、无退化输出）由你自己的运行对照。",
+          "en": "demo compresses the chain into one command: download the model → extract the direction → regenerate 10 held-out prompts → score both sides → write the ablation report. Scores are reported as measured with no bar filtering; the falsification bars (held-out separability ≥ 90%, mean reduction ≥ 20%, zero degenerate outputs) are checked against your own run."
+        },
+        "image": {
+          "light": "/assets/process-light.svg",
+          "dark": "/assets/process-dark.svg",
+          "mobile": {
+            "light": "/assets/process-mobile-light.svg",
+            "dark": "/assets/process-mobile-dark.svg"
+          },
+          "alt": {
+            "zh": "demo 全链路：提取方向、生成前后对照、确定性打分、写消融报告",
+            "en": "The demo chain: extract the direction, generate before/after, score deterministically, write the report"
+          }
+        }
+      },
+      {
+        "title": {
+          "zh": "五个模块，一个进程",
+          "en": "Five modules, one process"
+        },
+        "body": {
+          "zh": "没有服务器，没有第二个二进制：typer CLI 进程内经 HF transformers 加载模型（CUDA / bf16）。loader 管加载，extract 做逐层均值池化与 diff-in-means，ablate 挂生成钩子，score 出确定性分数，pack 保存并校验 DirectionPack。",
+          "en": "No server, no second binary: a typer CLI process loads the model through HF transformers (CUDA / bf16). loader handles loading, extract does per-layer mean pooling and diff-in-means, ablate attaches the generation hook, score produces deterministic scores, pack saves and verifies the DirectionPack."
+        },
+        "image": {
+          "light": "/assets/architecture-light.svg",
+          "dark": "/assets/architecture-dark.svg",
+          "mobile": {
+            "light": "/assets/architecture-mobile-light.svg",
+            "dark": "/assets/architecture-mobile-dark.svg"
+          },
+          "alt": {
+            "zh": "zhsteer 架构：CLI、五个模块与数据流",
+            "en": "zhsteer architecture: the CLI, five modules and the data flow"
+          }
+        }
+      },
+      {
+        "title": {
+          "zh": "接进现有 transformers 调用",
+          "en": "Drops into existing transformers calls"
+        },
+        "body": {
+          "zh": "提取一次，随取随用：DirectionPack 载入后，steer() 上下文在进入时挂载钩子、退出时移除。strength=1.0 恰好移除腔调分量，调小则部分抑制，调大则过移除；现有的 generate() 一行不改。",
+          "en": "Extract once, use anywhere: after loading a DirectionPack, the steer() context attaches the hook on entry and removes it on exit. strength=1.0 removes exactly the register component; lower values damp it, higher values over-remove — your existing generate() call stays unchanged."
+        },
+        "image": {
+          "light": "/assets/capabilities-light.svg",
+          "dark": "/assets/capabilities-dark.svg",
+          "mobile": {
+            "light": "/assets/capabilities-mobile-light.svg",
+            "dark": "/assets/capabilities-mobile-dark.svg"
+          },
+          "alt": {
+            "zh": "steer() 上下文管理器与现有 generate() 调用的集成方式",
+            "en": "How the steer() context manager integrates with an existing generate() call"
+          }
+        }
+      }
+    ],
+    "details": [
+      {
+        "title": {
+          "zh": "DirectionPack：按模型打标的校验工件",
+          "en": "DirectionPack: a model-tagged, verified artifact"
+        },
+        "body": {
+          "zh": "schema 为 zhsteer.pack/v1，内含方向向量、所在层与提取时记录的验证证据（逐层可分性、train/held-out 拆分、样本数）。加载时校验和与字段重新计算——手改或损坏的 pack 当场报错。held-out 可分性只作为诚实的泛化数字写进 pack，不参与层选择。",
+          "en": "Schema zhsteer.pack/v1 carries the direction vector, its layer, and the validation evidence recorded at extraction time (per-layer separability, train/held-out split, sample counts). On load, the checksum and fields are recomputed — a hand-edited or corrupted pack fails loudly. Held-out separability is recorded as an honest generalization number and never participates in layer selection."
+        }
+      },
+      {
+        "title": {
+          "zh": "打分口径：九类信号，密度可比",
+          "en": "Scoring contract: nine signal classes, comparable density"
+        },
+        "body": {
+          "zh": "排比三连、值得体、总结套话、空话连接、递进句式、万能开头、首先其次体、爆款体词表、感叹号密度。分数是每 1000 非空白字符的加权命中数，让不同长度的 Before/After 可比；成段重复的退化输出由独立的退化检查负责，不算进腔调分数。",
+          "en": "Parallel triples, the worth-noting family, summary boilerplate, empty connectives, progressive constructions, era openers, first/then enumerations, a hype lexicon, and exclamation density. The score is weighted hits per 1,000 non-whitespace characters, keeping before/after comparable at different lengths; degenerate verbatim-repetition output is handled by a separate degeneracy check, not by the register score."
+        }
+      },
+      {
+        "title": {
+          "zh": "强度旋钮与层约定",
+          "en": "The strength knob and the layer convention"
+        },
+        "body": {
+          "zh": "方向记录在“第 i 层残差流之后”，与消融钩子的挂载点是同一个位置，提取的层直接用于消融；默认选训练集可分性最高的层（平手取更深）。--ablate 从 0（关闭）到 1.0（完全投影）连续可调。",
+          "en": "The direction is recorded after decoder layer i — exactly where the ablation hook attaches, so the extracted layer transfers directly; the default layer is the one with the highest training separability (deepest on ties). --ablate tunes continuously from 0 (off) to 1.0 (fully projected out)."
+        },
+        "code": "uv run zhsteer generate --pack packs/qwen3-4b.pack --ablate 0.9 --prompt \"写一段产品介绍\""
+      },
+      {
+        "title": {
+          "zh": "自备最小对",
+          "en": "Bring your own pairs"
+        },
+        "body": {
+          "zh": "内置集合覆盖常见内容场景；自有领域（电商、法务、学术……）可传 --pairs 指向你的 YAML，schema 与内置文件一致：ai / plain / held_out。",
+          "en": "The bundled set covers common content scenarios; for your own domain (e-commerce, legal, academic...), pass --pairs with your own YAML using the same schema as the bundled file: ai / plain / held_out."
+        },
+        "code": "uv run zhsteer extract --model qwen3-4b --pairs your_pairs.yaml"
+      }
+    ]
+  },
+  "cta": {
+    "headline": {
+      "zh": "数字应当来自你自己的 GPU",
+      "en": "The numbers should come from your own GPU"
+    },
+    "sub": {
+      "zh": "一条命令，约 30 分钟，读一份属于你的消融报告。",
+      "en": "One command, about 30 minutes, and an ablation report of your own."
+    },
+    "button": {
+      "zh": "在 GitHub 上开始",
+      "en": "Get started on GitHub"
+    }
+  },
+  "footer": {
+    "tag": {
+      "zh": "免费 + 开源 · MIT · 无付费层",
+      "en": "Free + open source · MIT · no paid tier"
+    }
+  }
+}
