@@ -1,0 +1,27 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# extracted direction packs are artifacts — re-create with `zhsteer extract`
+packs/
+
+# editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# local scratch and control files
+PUBLISH_BLOCKED.md
+BUILD_SETUP_NEXT_STEPS.md
+.spawn.*
+.builder_*
+.build_metadata*
+.stage_*
+_build_ctx.json
+.claude/
+CLAUDE.md
