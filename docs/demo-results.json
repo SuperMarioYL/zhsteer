@@ -1,0 +1,74 @@
+{
+  "project": "zhsteer",
+  "version": "0.1.0",
+  "recorded_at": "2026-10-16",
+  "environment": {
+    "os": "macOS 15 (arm64)",
+    "python": "3.14.4",
+    "torch": "2.13.0",
+    "transformers": "5.14.1",
+    "cuda_available": false
+  },
+  "gpu_happy_path": {
+    "status": "not_executed_in_this_environment",
+    "why": "v0.1 只支持 CUDA >= 16GB VRAM（macOS/CPU 推理在计划中明确排除）。本机无 CUDA GPU，无法下载并运行 ~8GB 的 Qwen3-4B-Instruct-2507 完整链路。",
+    "command": "uv run zhsteer demo --model qwen3-4b",
+    "expected_artifact": "assets/demo/ablation-report.md",
+    "expected_effort": "一条命令；模型首次下载 ~8GB；预计 ~30 分钟（16GB 消费级 GPU）",
+    "note": "仓库内置的 assets/demo/ablation-report.md 是明确标注的模板（占位符结构）。实测数字必须来自用户自己的 GPU 运行，README 不宣称任何未测量的结果。"
+  },
+  "verified_locally": [
+    {
+      "what": "单元测试：提取机制（合成张量 fixture）、DirectionPack 完整性、trope 打分器、内置最小对契约（64 组 / 12 held-out）",
+      "command": "python3 -m pytest -q",
+      "output": "41 passed in 1.35s",
+      "note": "fixture 为合成嵌入 + 注入到指定层的方向分量，不下载任何模型。"
+    },
+    {
+      "what": "CLI 装配：五个子命令注册",
+      "command": "python3 -m zhsteer.cli --help",
+      "output": "doctor / extract / generate / demo / score"
+    },
+    {
+      "what": "trope 打分器（确定性，无需模型）",
+      "command": "zhsteer score --json --text '我们要做更高效、更智能、更普惠的工具！'",
+      "output": {
+        "total": 184.21052631578948,
+        "chars": 19,
+        "hits": {
+          "parallel_triple": 1,
+          "discourse_marker": 0,
+          "summary_boilerplate": 0,
+          "empty_connective": 0,
+          "progressive_pair": 0,
+          "era_opener": 0,
+          "enumeration": 0,
+          "hype_lexicon": 0,
+          "exclamation": 1
+        }
+      }
+    },
+    {
+      "what": "doctor 体检在无 CUDA 机器上的行为（逐项列出 + 非零退出码）",
+      "command": "zhsteer doctor",
+      "output": "[PASS] Python >= 3.12：3.14.4 / [PASS] torch：2.13.0 / [PASS] transformers：5.14.1 / [FAIL] CUDA：无可用 CUDA 设备 / [FAIL] 显存 >= 16GB：未检测到 GPU / [PASS] 磁盘可用 >= 12GB：475.5GB；退出码 1"
+    },
+    {
+      "what": "打包：wheel + sdist 可构建（release.yml 的构建步骤）",
+      "command": "uv build --out-dir /tmp/zhsteer-dist",
+      "output": [
+        "zhsteer-0.1.0-py3-none-any.whl",
+        "zhsteer-0.1.0.tar.gz"
+      ]
+    },
+    {
+      "what": "内置最小对质量契约（由 tests/test_extract.py::test_bundled_seed_pairs_contract 固定）",
+      "output": "64 组最小对，12 组 held_out；plain 侧 trope 分数全部为 0；ai 侧平均分远高于 plain 侧；ai != plain"
+    }
+  ],
+  "limitations": [
+    "提取、生成、消融报告的真实数字未经本环境测量——需要 16GB CUDA GPU。",
+    "held-out 可分性（计划证伪线 >= 90%）与平均 trope 降幅（>= 20%）均待用户在自己的 GPU 上验证。",
+    "打包产物未上传 PyPI；release.yml 在打 v*.*.* 标签时构建 dist/，PyPI 发布默认关闭（PYPI_PUBLISH 变量 opt-in）。"
+  ]
+}
