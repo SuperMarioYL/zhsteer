@@ -139,7 +139,10 @@ def capture_activations(
                 hidden_states = output.hidden_states  # (n_layers + 1) × [batch, seq, d_model]
                 if not per_layer:
                     per_layer = [[] for _ in range(len(hidden_states) - 1)]
-                mask = encoded["attention_mask"].to(hidden_states[0].dtype).unsqueeze(-1)
+                # float32 even when the residual is bf16/fp16: bf16 cannot
+                # represent every integer above 256, so a bf16 mask sum rounds
+                # down and inflates the mean for long texts.
+                mask = encoded["attention_mask"].to(torch.float32).unsqueeze(-1)
                 for layer_index in range(1, len(hidden_states)):
                     residual = hidden_states[layer_index].to(torch.float32)
                     mean = (residual * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)

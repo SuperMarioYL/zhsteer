@@ -32,15 +32,15 @@ zhsteer 把同一件事挪到权重层：
 2. 生成时把这个方向从残差流里投影掉：`x ← x − (x·d̂)d̂`。腔调在生成源头就不再进入输出，与之正交的内容子空间不受影响；
 3. 它交付为一个可调用的推理原语——`steer()` 上下文管理器或 `--ablate 0.9`，像 `temperature` 一样接在你现有的 transformers 调用旁边。方向提取每个模型版本只做一次，Agent 内容管线不必逐篇重洗。
 
-## 先读这段：v0.1 的诚实边界
+## 先读这段：v0.2 的诚实边界
 
 - **只在 Qwen/Qwen3-4B-Instruct-2507 上验证过。** DirectionPack 按模型打标并校验 checksum，拿到别的模型上会拒绝加载。
-- **“中文输出的方向可分性”正是 v0.1 要跑通的证伪实验。** 计划设定的证伪线：held-out 最小对可分性 ≥ 90%，平均 trope 分数降幅 ≥ 20%，且无退化输出。这些数字应当来自你自己的 GPU——跑一遍 `zhsteer demo`，读报告。不达标？负结果本身也值得发布，这正是本项目把报告设为核心产物的原因。
+- **“中文输出的方向可分性”正是 v0.2 仍在跑通的证伪实验。** 计划设定的证伪线：held-out 最小对可分性 ≥ 90%，平均 trope 分数降幅 ≥ 20%，且无退化输出。这些数字应当来自你自己的 GPU——跑一遍 `zhsteer demo`，读报告。不达标？负结果本身也值得发布，这正是本项目把报告设为核心产物的原因。
 - **仓库内置的 [`assets/demo/ablation-report.md`](./assets/demo/ablation-report.md) 是报告模板**，结构完整、数值全部为占位符，不是实测结果。真实数据由你的 `zhsteer demo` 运行写回该路径。
 
 ## 安装
 
-要求：NVIDIA GPU（≥ 16GB 显存）、Python 3.12+、[uv](https://docs.astral.sh/uv/)。macOS / CPU 推理不在 v0.1 支持范围。
+要求：NVIDIA GPU（≥ 16GB 显存）、Python 3.12+、[uv](https://docs.astral.sh/uv/)。macOS / CPU 推理不在 v0.2 支持范围。
 
 ```bash
 git clone https://github.com/SuperMarioYL/zhsteer
@@ -75,7 +75,8 @@ uv run zhsteer generate --pack packs/qwen3-4b.pack \
 # zhsteer 消融报告
 - 模型：Qwen/Qwen3-4B-Instruct-2507
 - 方向包：packs/qwen3-4b.pack（layer <L>，checksum <…>）
-- 最小对：pairs/seed_pairs.zh.yaml（train 52 / held-out 12）
+- 最小对（提取）：pairs/seed_pairs.zh.yaml（sha256 <…>，train 52 / held-out 12）
+- 复现：`uv run zhsteer demo --model qwen3-4b`
 
 ## 各提示词前后对比
 ### 1. <提示词摘要>
@@ -88,9 +89,16 @@ trope 分数：<XX.XX> → <XX.XX>（降幅 <XX%>）；退化检查：通过
 | # | 提示词 | Before | After | 降幅 |
 | 1 | <…>   | <XX.XX> | <XX.XX> | <XX%> |
 平均 trope 分数：<XX.XX> → <XX.XX>（平均降幅 <XX%>）
+退化输出：<N>/<10>（After 侧含成段重复或空输出即计为未通过）
 ```
 
 打分器是纯词表 + 正则的确定性实现——同一文本永远得到同一分数，前后差值只能来自消融本身。
+
+报告与 CLI 汇总共用同一份聚合，不会各说各话。v0.2 起：
+
+- After 侧全部退化/为空时，`demo` 会打印退化计数并以非零码退出（报告仍会写出），避免把一次失败读成 100% 降幅。
+- `--pack` 复用时，"最小对（提取）"记录 pack 自己的 pairs 哈希；`--pairs` 提示词文件不同则单独列为"提示词来源"。
+- "复现"行只列出实际使用的非默认参数；`--pairs` 没有 held-out 划分时，可分性标注为 in-sample，并说明 ≥90% 证伪线未评估。
 
 ## 工作原理
 
@@ -141,9 +149,9 @@ with steer(model, pack, strength=0.9):
 
 ## 已知局限
 
-- v0.1 只验证 Qwen3-4B-Instruct-2507 一个模型；换模型需重新提取 pack（schema 已按模型打标，不会静默错配）。
+- v0.2 只验证 Qwen3-4B-Instruct-2507 一个模型；换模型需重新提取 pack（schema 已按模型打标，不会静默错配）。
 - 仅支持 HF transformers 推理循环；vLLM / SGLang / OpenAI 兼容 serving 集成未实现。
-- 单方向、单层消融；风格 × 格式 × 语言的多方向组合不在 v0.1。
+- 单方向、单层消融；风格 × 格式 × 语言的多方向组合不在 v0.2。
 - 打分器是词表口径的确定性评分，不是 LLM-as-judge 的质量评审——它度量腔调密度，不度量文采。
 - 种子最小对为手工编写，覆盖常见内容场景但非穷举；自定义场景请用 `--pairs` 换成你自己的集合。
 

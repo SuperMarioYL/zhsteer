@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "zhsteer"
-version = "0.1.0"
+version = "0.2.0"
 description = "面向中文内容管线开发者的开源权重去腔工具，直接在 Qwen 内部移除中文 AI 腔"
 readme = "README.md"
 requires-python = ">=3.12"

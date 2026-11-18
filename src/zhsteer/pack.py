@@ -127,7 +127,15 @@ def save(pack: DirectionPack, path: str | Path) -> Path:
 
 def load(path: str | Path, *, verify_checksum: bool = True) -> DirectionPack:
     """Load and validate a pack written by :func:`save`."""
-    payload = torch.load(path, map_location="cpu", weights_only=True)
+    try:
+        payload = torch.load(path, map_location="cpu", weights_only=True)
+    except OSError:
+        raise  # missing/unreadable file: keep the operating-system error precise
+    except Exception as exc:
+        # torch/pickle choose the exception by corruption mode (UnpicklingError
+        # for garbage, RuntimeError for a truncated archive). Callers and the CLI
+        # only need one contract: an unreadable pack is a PackError.
+        raise PackError(f"{path}: not a readable zhsteer pack ({type(exc).__name__})") from exc
     if not isinstance(payload, dict):
         raise PackError(f"{path}: not a zhsteer pack file")
     try:

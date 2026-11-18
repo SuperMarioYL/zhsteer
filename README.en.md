@@ -32,15 +32,15 @@ zhsteer moves the same job into the weights:
 2. At generation time, project that direction out of the residual stream: `x ← x − (x·d̂)d̂`. The register never reaches the output, while the orthogonal content subspace is untouched.
 3. It ships as a callable inference primitive — a `steer()` context manager or `--ablate 0.9` — that plugs next to your existing transformers call like `temperature` does. Extraction runs once per model version; an Agent content pipeline stops re-washing every article.
 
-## Read this first: what v0.1 honestly claims
+## Read this first: what v0.2 honestly claims
 
 - **Validated on Qwen/Qwen3-4B-Instruct-2507 only.** DirectionPacks are model-tagged and checksum-verified; loading one into a different model is rejected.
-- **Chinese-output separability is exactly the falsifier experiment v0.1 exists to run.** The plan's falsification bars: ≥ 90% held-out pair separability, ≥ 20% mean trope-score reduction, zero degenerate outputs. These numbers should come from your own GPU — run `zhsteer demo` and read the report. If the bars are not met, the negative result is worth publishing too; that is why the report, not the repo, is the launch artifact.
+- **Chinese-output separability is exactly the falsifier experiment v0.2 exists to run.** The plan's falsification bars: ≥ 90% held-out pair separability, ≥ 20% mean trope-score reduction, zero degenerate outputs. These numbers should come from your own GPU — run `zhsteer demo` and read the report. If the bars are not met, the negative result is worth publishing too; that is why the report, not the repo, is the launch artifact.
 - **The bundled [`assets/demo/ablation-report.md`](./assets/demo/ablation-report.md) is a report template** — the full structure with placeholder values, not measured results. Your own `zhsteer demo` run overwrites that path with measured data.
 
 ## Install
 
-Requirements: NVIDIA GPU (≥ 16GB VRAM), Python 3.12+, [uv](https://docs.astral.sh/uv/). macOS and CPU inference are out of scope for v0.1.
+Requirements: NVIDIA GPU (≥ 16GB VRAM), Python 3.12+, [uv](https://docs.astral.sh/uv/). macOS and CPU inference are out of scope for v0.2.
 
 ```bash
 git clone https://github.com/SuperMarioYL/zhsteer
@@ -76,7 +76,8 @@ The output of `zhsteer demo` is an ablation report: full Before/After text for e
 # zhsteer ablation report
 - Model: Qwen/Qwen3-4B-Instruct-2507
 - Direction pack: packs/qwen3-4b.pack (layer <L>, checksum <…>)
-- Minimal pairs: pairs/seed_pairs.zh.yaml (52 train / 12 held out)
+- Minimal pairs (extraction): pairs/seed_pairs.zh.yaml (sha256 <…>, 52 train / 12 held out)
+- Reproduce: `uv run zhsteer demo --model qwen3-4b`
 
 ## Before/after by prompt
 ### 1. <prompt summary>
@@ -89,9 +90,16 @@ trope score: <XX.XX> → <XX.XX> (<XX%> lower); degeneracy check: pass
 | # | Prompt | Before | After | Reduction |
 | 1 | <…>    | <XX.XX> | <XX.XX> | <XX%> |
 Mean trope score: <XX.XX> → <XX.XX> (<XX%> mean reduction)
+Degenerate outputs: <N>/<10> (an empty After side or a verbatim repeated passage counts as failed)
 ```
 
 The scorer is a deterministic lexicon + regex implementation — the same text always produces the same score, so the before/after delta can only come from the ablation itself.
+
+The report and the CLI summary share one aggregation, so they cannot disagree. Since v0.2:
+
+- When every After side is degenerate or empty, `demo` prints the degeneracy count and exits non-zero (the report is still written), so a failed run is no longer readable as a 100% reduction.
+- With `--pack`, "Minimal pairs (extraction)" records the pack's own pairs hash; a different `--pairs` prompt file is listed separately as the prompt source.
+- The "Reproduce" line lists only the non-default flags actually used; with no held-out split in the pair file, separability is labelled in-sample and the ≥90% held-out bar is stated as unevaluated.
 
 ## How it works
 
@@ -142,9 +150,9 @@ The scorer covers nine classes of Chinese AI-register signals: parallel triples,
 
 ## Known limitations
 
-- v0.1 validates one model, Qwen3-4B-Instruct-2507; switching models requires re-extracting the pack (the schema is model-tagged, so mismatches fail loudly).
+- v0.2 validates one model, Qwen3-4B-Instruct-2507; switching models requires re-extracting the pack (the schema is model-tagged, so mismatches fail loudly).
 - HF transformers inference only; vLLM / SGLang / OpenAI-compatible serving integration is not implemented.
-- Single direction, single layer; multi-direction composition (style × format × language) is out of scope for v0.1.
+- Single direction, single layer; multi-direction composition (style × format × language) is out of scope for v0.2.
 - The scorer is a deterministic lexicon metric, not an LLM-as-judge review — it measures register density, not writing quality.
 - The bundled minimal pairs are hand-written and cover common content scenarios, not an exhaustive set; pass `--pairs` with your own set for custom domains.
 

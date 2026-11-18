@@ -102,6 +102,26 @@ def test_load_rejects_unrelated_payloads(tmp_path):
         load(unrelated)
 
 
+def test_load_wraps_garbage_file_as_pack_error(tmp_path):
+    path = tmp_path / "garbage.pack"
+    path.write_bytes(b"not a torch file at all")
+    with pytest.raises(PackError, match="not a readable zhsteer pack"):
+        load(path)
+
+
+def test_load_wraps_truncated_pack_as_pack_error(tmp_path):
+    path = save(make_pack(), tmp_path / "pack")
+    truncated = tmp_path / "truncated.pack"
+    truncated.write_bytes(path.read_bytes()[:100])
+    with pytest.raises(PackError, match="not a readable zhsteer pack"):
+        load(truncated)
+
+
+def test_load_keeps_missing_file_as_oserror(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load(tmp_path / "missing.pack")
+
+
 # --------------------------------------------------------------------------- verify rules
 
 

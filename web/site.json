@@ -8,6 +8,13 @@
     "toggle": true
   },
   "palette": "auto",
+  "meta": {
+    "visual_profile": "neon-particle",
+    "demo_source": "docs/demo-results.json",
+    "content_version": "v0.2.0",
+    "source_version": "v0.2.0",
+    "generated_at": "2026-11-19"
+  },
   "hero": {
     "eyebrow": {
       "zh": "开源权重 · 推理时消融 · MIT",
@@ -64,8 +71,8 @@
         "en": "Deterministic scoring + checksummed packs"
       },
       "body": {
-        "zh": "打分器是纯词表 + 正则：九类中文 AI 腔信号，每 1000 非空白字符加权命中，同一文本永远同一分数。DirectionPack 按模型打标、sha256 校验，加载时重新计算，坏包当场报错而不是带着坏方向继续生成。",
-        "en": "The scorer is pure lexicon + regex: nine Chinese AI-register signal classes, weighted hits per 1,000 non-whitespace characters — the same text always scores the same. DirectionPacks are model-tagged with sha256 checksums recomputed on load; a corrupted pack fails loudly instead of steering generation with a broken direction."
+        "zh": "打分器是纯词表 + 正则：九类中文 AI 腔信号，每 1000 非空白字符加权命中，同一文本永远同一分数。DirectionPack 按模型打标、sha256 校验，加载时重新计算，坏包由 PackError 一行报出而不是带着坏方向继续生成。v0.2 起报告与 CLI 共用同一份汇总：After 侧全部退化时 demo 以非零码退出，样本内可分性会明确标注。",
+        "en": "The scorer is pure lexicon + regex: nine Chinese AI-register signal classes, weighted hits per 1,000 non-whitespace characters — the same text always scores the same. DirectionPacks are model-tagged with sha256 checksums recomputed on load; a corrupted pack fails loudly with a PackError instead of steering generation with a broken direction. Since v0.2 the report and the CLI share one aggregation: a fully degenerate After side makes demo exit non-zero, and in-sample separability is labelled as such."
       }
     }
   ],
@@ -75,8 +82,8 @@
       "en": "Verified run records"
     },
     "note": {
-      "zh": "以下命令与输出逐字取自 docs/demo-results.json（2026-10-16，macOS / 无 CUDA 环境）：体检、打分与测试为实测记录；提取、生成与消融报告的真实数字需要 16GB CUDA GPU，由你自己的 zhsteer demo 运行写回。",
-      "en": "Commands and outputs are copied verbatim from docs/demo-results.json (2026-10-16, macOS without CUDA): the environment check, scorer and tests are measured runs; real extract / generate / report numbers require a 16GB CUDA GPU and come from your own zhsteer demo run."
+      "zh": "以下命令与输出逐字取自 docs/demo-results.json（2026-11-19，macOS / 无 CUDA 环境）：体检、打分与测试为实测记录；提取、生成与消融报告的真实数字需要 16GB CUDA GPU，由你自己的 zhsteer demo 运行写回。",
+      "en": "Commands and outputs are copied verbatim from docs/demo-results.json (2026-11-19, macOS without CUDA): the environment check, scorer and tests are measured runs; real extract / generate / report numbers require a 16GB CUDA GPU and come from your own zhsteer demo run."
     },
     "source": "https://github.com/SuperMarioYL/zhsteer/blob/main/docs/demo-results.json",
     "steps": [
@@ -86,8 +93,8 @@
           "en": "Environment check"
         },
         "body": {
-          "zh": "v0.1 只支持 CUDA ≥ 16GB 显存。在无 CUDA 的机器上，doctor 逐项列出缺口并以非零码退出——不让你白等一次 ~8GB 模型下载。",
-          "en": "v0.1 requires CUDA with at least 16GB VRAM. On a machine without CUDA, doctor lists every gap item by item and exits non-zero — no ~8GB model download wasted."
+          "zh": "v0.2 只支持 CUDA ≥ 16GB 显存。在无 CUDA 的机器上，doctor 逐项列出缺口并以非零码退出——不让你白等一次 ~8GB 模型下载。",
+          "en": "v0.2 requires CUDA with at least 16GB VRAM. On a machine without CUDA, doctor lists every gap item by item and exits non-zero — no ~8GB model download wasted."
         },
         "image": "/assets/demo-doctor-light.svg",
         "imageDark": "/assets/demo-doctor-dark.svg",
@@ -114,13 +121,13 @@
           "en": "Test suite"
         },
         "body": {
-          "zh": "合成 fixture 不下载任何模型：提取机制（注入指定层的方向分量）、DirectionPack 完整性、trope 打分器与内置最小对契约（64 组 / 12 held-out）全部通过。",
-          "en": "Synthetic fixtures download no model: extraction mechanics (a direction component injected at a fixed layer), DirectionPack integrity, the trope scorer, and the bundled pair contract (64 pairs / 12 held out) all pass."
+          "zh": "合成 fixture 不下载任何模型：提取机制（注入指定层的方向分量）、DirectionPack 完整性、trope 打分器、内置最小对契约（64 组 / 12 held-out）与 CLI 报告/demo 汇总全部通过。",
+          "en": "Synthetic fixtures download no model: extraction mechanics (a direction component injected at a fixed layer), DirectionPack integrity, the trope scorer, the bundled pair contract (64 pairs / 12 held out), and the CLI report/demo summary all pass."
         },
         "image": "/assets/demo-tests-light.svg",
         "imageDark": "/assets/demo-tests-dark.svg",
         "command": "python3 -m pytest -q",
-        "output": "41 passed in 1.35s"
+        "output": "57 passed in 2.32s"
       },
       {
         "label": {
@@ -128,13 +135,13 @@
           "en": "CLI surface"
         },
         "body": {
-          "zh": "五个子命令一次装配：doctor / extract / generate / demo / score。重型依赖只在需要的命令里导入，score 与 --help 在没有 GPU 的机器上依然秒级响应。",
-          "en": "Five subcommands assemble in one CLI: doctor / extract / generate / demo / score. Heavy imports happen only inside the commands that need them, so score and --help stay fast on machines without a GPU."
+          "zh": "五个子命令加 `--version` 一次装配：doctor / extract / generate / demo / score。重型依赖只在需要的命令里导入，score 与 --help 在没有 GPU 的机器上依然秒级响应。",
+          "en": "Five subcommands plus `--version` assemble in one CLI: doctor / extract / generate / demo / score. Heavy imports happen only inside the commands that need them, so score and --help stay fast on machines without a GPU."
         },
         "image": "/assets/demo-cli-light.svg",
         "imageDark": "/assets/demo-cli-dark.svg",
-        "command": "python3 -m zhsteer.cli --help",
-        "output": "doctor / extract / generate / demo / score"
+        "command": "python3 -m zhsteer.cli --help && python3 -m zhsteer.cli --version",
+        "output": "doctor / extract / generate / demo / score；0.2.0"
       }
     ]
   },
@@ -144,8 +151,8 @@
       "en": "Quickstart"
     },
     "body": {
-      "zh": "要求：NVIDIA GPU（≥ 16GB 显存）、Python 3.12+、uv。macOS / CPU 推理不在 v0.1 支持范围。首次运行会下载 ~8GB 模型（只需一次）；在 16GB 消费级 GPU 上，一条命令预计约 30 分钟。",
-      "en": "Requirements: an NVIDIA GPU (at least 16GB VRAM), Python 3.12+, and uv. macOS and CPU inference are out of scope for v0.1. The first run downloads the ~8GB model (once); the one-command path takes about 30 minutes on a 16GB consumer GPU."
+      "zh": "要求：NVIDIA GPU（≥ 16GB 显存）、Python 3.12+、uv。macOS / CPU 推理不在 v0.2 支持范围。首次运行会下载 ~8GB 模型（只需一次）；在 16GB 消费级 GPU 上，一条命令预计约 30 分钟。",
+      "en": "Requirements: an NVIDIA GPU (at least 16GB VRAM), Python 3.12+, and uv. macOS and CPU inference are out of scope for v0.2. The first run downloads the ~8GB model (once); the one-command path takes about 30 minutes on a 16GB consumer GPU."
     },
     "steps": [
       {
@@ -180,12 +187,12 @@
   },
   "limitations": [
     {
-      "zh": "v0.1 只在 Qwen/Qwen3-4B-Instruct-2507 上验证过；DirectionPack 按模型打标并校验 checksum，换模型需要重新提取。",
-      "en": "v0.1 is validated on Qwen/Qwen3-4B-Instruct-2507 only; DirectionPacks are model-tagged and checksum-verified, so switching models requires re-extraction."
+      "zh": "v0.2 只在 Qwen/Qwen3-4B-Instruct-2507 上验证过；DirectionPack 按模型打标并校验 checksum，换模型需要重新提取。",
+      "en": "v0.2 is validated on Qwen/Qwen3-4B-Instruct-2507 only; DirectionPacks are model-tagged and checksum-verified, so switching models requires re-extraction."
     },
     {
-      "zh": "模型路径需要 CUDA ≥ 16GB 显存的 NVIDIA GPU；macOS / CPU 推理不在 v0.1 范围。",
-      "en": "The model path needs an NVIDIA GPU with at least 16GB VRAM; macOS and CPU inference are out of scope for v0.1."
+      "zh": "模型路径需要 CUDA ≥ 16GB 显存的 NVIDIA GPU；macOS / CPU 推理不在 v0.2 范围。",
+      "en": "The model path needs an NVIDIA GPU with at least 16GB VRAM; macOS and CPU inference are out of scope for v0.2."
     },
     {
       "zh": "本页 demo 面板是无 CUDA 机器上的实测记录；held-out 可分性、trope 降幅等真实数字必须来自你自己的 GPU 运行，仓库内置的报告是占位模板。",
@@ -231,8 +238,8 @@
           "en": "A one-command falsifier"
         },
         "body": {
-          "zh": "demo 把全链路压成一条命令：下载模型 → 提取方向 → 重新生成 10 条 held-out 提示词 → 前后打分 → 写出消融报告。分数为实测值，不做门槛过滤；证伪线（held-out 可分性 ≥ 90%、平均降幅 ≥ 20%、无退化输出）由你自己的运行对照。",
-          "en": "demo compresses the chain into one command: download the model → extract the direction → regenerate 10 held-out prompts → score both sides → write the ablation report. Scores are reported as measured with no bar filtering; the falsification bars (held-out separability ≥ 90%, mean reduction ≥ 20%, zero degenerate outputs) are checked against your own run."
+          "zh": "demo 把全链路压成一条命令：下载模型 → 提取方向 → 重新生成 10 条 held-out 提示词 → 前后打分 → 写出消融报告。分数为实测值，不做门槛过滤；证伪线（held-out 可分性 ≥ 90%、平均降幅 ≥ 20%、无退化输出）由你自己的运行对照。After 侧全部退化时命令以非零码退出，样本内可分性会明确标注。",
+          "en": "demo compresses the chain into one command: download the model → extract the direction → regenerate 10 held-out prompts → score both sides → write the ablation report. Scores are reported as measured with no bar filtering; the falsification bars (held-out separability ≥ 90%, mean reduction ≥ 20%, zero degenerate outputs) are checked against your own run. A fully degenerate After side exits non-zero, and in-sample separability is labelled explicitly."
         },
         "image": {
           "light": "/assets/process-light.svg",

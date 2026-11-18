@@ -196,6 +196,32 @@ def test_capture_activations_validates_input(tiny_setup):
         capture_activations(model, tokenizer, ["x"], batch_size=0)
 
 
+class Bf16OnesLM(torch.nn.Module):
+    """bf16 residual stream whose token vectors are all ones (true mean = 1.0)."""
+
+    def __init__(self, d_model=4, n_layers=2):
+        super().__init__()
+        self._parameter = torch.nn.Parameter(torch.zeros(1))
+        self.d_model = d_model
+        self.n_layers = n_layers
+
+    def forward(self, input_ids, attention_mask=None, output_hidden_states=False, use_cache=False, **kwargs):
+        batch, seq = input_ids.shape
+        hidden = torch.ones(batch, seq, self.d_model, dtype=torch.bfloat16)
+        return type("Output", (), {"hidden_states": tuple([hidden] * (self.n_layers + 1))})()
+
+
+def test_capture_activations_bf16_mask_mean_is_exact():
+    """A bf16 mask sum rounds down above 256 tokens; the pooled mean must not."""
+    model = Bf16OnesLM()
+    for length in (257, 1002):
+        text = "甲" * length
+        tokenizer = CharTokenizer([text])
+        acts = capture_activations(model, tokenizer, [text], batch_size=1)
+        assert acts.dtype is torch.float32
+        assert torch.equal(acts, torch.ones_like(acts))
+
+
 # --------------------------------------------------------------------------- extract_direction
 
 

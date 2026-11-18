@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 try:  # installed via pip/uv — pyproject.toml is the single version source
     __version__ = version("zhsteer")

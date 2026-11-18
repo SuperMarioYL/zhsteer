@@ -7,7 +7,7 @@ here is everything about turning a model reference into loaded weights:
 
 - ``MODEL_ALIASES`` maps short names to HF repo ids. ``qwen3-4b`` is the plan's
   validated target; the schema is model-tagged, so other HF ids resolve fine —
-  v0.1 simply makes no claim about them.
+  v0.2 simply makes no claim about them.
 - :func:`load_model_and_tokenizer` enforces the plan's hardware boundary
   (CUDA only, macOS/CPU out of scope) and loads in bf16 when the GPU supports
   it — fp32 weights of a 4B model do not fit a 16GB card alongside KV cache.
@@ -58,12 +58,12 @@ def load_model_and_tokenizer(model_id: str) -> Loaded:
     """Load a causal LM + tokenizer onto the CUDA GPU in half precision.
 
     Raises with a pointer to ``zhsteer doctor`` when no CUDA device is visible —
-    the plan scopes v0.1 to CUDA >= 16GB VRAM, and silently falling back to CPU
+    the plan scopes v0.2 to CUDA >= 16GB VRAM, and silently falling back to CPU
     would turn a 30-minute GPU run into an overnight one.
     """
     if not torch.cuda.is_available():
         raise RuntimeError(
-            "CUDA is not available — zhsteer v0.1 requires a CUDA GPU with >= 16GB VRAM "
+            "CUDA is not available — zhsteer v0.2 requires a CUDA GPU with >= 16GB VRAM "
             "(run `zhsteer doctor` to inspect this machine)"
         )
     dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
